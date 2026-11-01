@@ -1,26 +1,65 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /ideas/{ideaId} {
-      allow read: if true;
-
-      allow create: if request.resource.data.keys().hasAll([
+    function isValidIdea(data) {
+      return data.keys().hasAll([
         'title',
         'description',
         'category',
-        'votes',
+        'voteTotal',
+        'userVotes',
         'createdAt'
       ])
-      && request.resource.data.title is string
-      && request.resource.data.title.size() > 0
-      && request.resource.data.description is string
-      && request.resource.data.description.size() > 0
-      && request.resource.data.category is string
-      && request.resource.data.category.size() > 0
-      && request.resource.data.votes is int
-      && request.resource.data.createdAt is timestamp;
+      && data.title is string
+      && data.title.size() > 0
+      && data.title.size() <= 60
+      && data.description is string
+      && data.description.size() > 0
+      && data.description.size() <= 300
+      && data.category is string
+      && data.category.size() > 0
+      && data.voteTotal is int
+      && data.voteTotal >= 0
+      && data.userVotes is map
+      && data.createdAt is timestamp;
+    }
 
-      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']);
+    function isValidVoteMap(votes) {
+      return votes is map
+      && votes.values().hasOnly([1, -1, 0])
+      && votes.values().size() >= 0;
+    }
+
+    match /ideas/{ideaId} {
+      allow read: if true;
+
+      allow create: if isValidIdea(request.resource.data)
+      && isValidVoteMap(request.resource.data.userVotes);
+
+      allow update: if resource.data.keys().hasAll([
+        'title',
+        'description',
+        'category',
+        'voteTotal',
+        'userVotes',
+        'createdAt'
+      ])
+      && request.resource.data.keys().hasAll([
+        'title',
+        'description',
+        'category',
+        'voteTotal',
+        'userVotes',
+        'createdAt'
+      ])
+      && request.resource.data.title == resource.data.title
+      && request.resource.data.description == resource.data.description
+      && request.resource.data.category == resource.data.category
+      && request.resource.data.createdAt == resource.data.createdAt
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteTotal', 'userVotes'])
+      && request.resource.data.voteTotal is int
+      && request.resource.data.voteTotal >= 0
+      && isValidVoteMap(request.resource.data.userVotes);
     }
   }
 }
