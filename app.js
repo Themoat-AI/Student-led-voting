@@ -16,12 +16,13 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyBQ11xqFkG-gOlA2ZlNrDmMZJ8OugIBNOA",
+  authDomain: "student-voting-bd329.firebaseapp.com",
+  projectId: "student-voting-bd329",
+  storageBucket: "student-voting-bd329.firebasestorage.app",
+  messagingSenderId: "875267736003",
+  appId: "1:875267736003:web:6e9b85a7578cc76cb8fd76",
+  measurementId: "G-KY7DM7PMVM",
 };
 
 const app = initializeApp(firebaseConfig);
