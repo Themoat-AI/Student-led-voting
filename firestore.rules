@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /ideas/{ideaId} {
+      allow read: if true;
+
+      allow create: if request.resource.data.keys().hasAll([
+        'title',
+        'description',
+        'category',
+        'votes',
+        'createdAt'
+      ])
+      && request.resource.data.title is string
+      && request.resource.data.title.size() > 0
+      && request.resource.data.description is string
+      && request.resource.data.description.size() > 0
+      && request.resource.data.category is string
+      && request.resource.data.category.size() > 0
+      && request.resource.data.votes is int
+      && request.resource.data.createdAt is timestamp;
+
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes']);
+    }
+  }
+}

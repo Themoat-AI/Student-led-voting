@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="School spirit week idea board where students can post ideas, vote, and see what the whole school wants."
+    />
+    <title>School Spirit Week</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Student vote board</p>
+          <h1>School Spirit Week</h1>
+        </div>
+        <div class="tag">Vote for what we do next</div>
+      </header>
+
+      <main class="layout">
+        <section class="panel form-panel" aria-labelledby="idea-form-title">
+          <h2 id="idea-form-title">Share a new idea</h2>
+
+          <form id="idea-form" novalidate>
+            <label>
+              Idea title
+              <input
+                id="title"
+                type="text"
+                maxlength="60"
+                placeholder="Crazy Hat Day"
+                required
+              />
+            </label>
+
+            <label>
+              Category
+              <select id="category" required>
+                <option value="">Pick a category</option>
+                <option>Dress-up</option>
+                <option>Food</option>
+                <option>Talent show</option>
+                <option>Games</option>
+                <option>Competition</option>
+                <option>Other</option>
+              </select>
+            </label>
+
+            <label>
+              Details
+              <textarea
+                id="description"
+                rows="5"
+                maxlength="300"
+                placeholder="What makes this idea fun? Tell everyone what it would look like."
+                required
+              ></textarea>
+            </label>
+
+            <button type="submit" class="primary-btn">Add idea</button>
+          </form>
+
+          <p id="form-message" class="message" aria-live="polite"></p>
+        </section>
+
+        <section class="panel list-panel" aria-labelledby="ideas-heading">
+          <div class="list-head">
+            <h2 id="ideas-heading">Student ideas</h2>
+            <span id="idea-count">0 ideas</span>
+          </div>
+
+          <div id="ideas" class="idea-list"></div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
