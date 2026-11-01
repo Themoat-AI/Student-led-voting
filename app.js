@@ -13,6 +13,7 @@ import {
   doc,
   updateDoc,
   increment,
+  getDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -36,12 +37,28 @@ const ideasContainer = document.getElementById("ideas");
 const ideaCount = document.getElementById("idea-count");
 const formMessage = document.getElementById("form-message");
 
+const browserStorageKey = "student-voting-browser-id";
 const ideasRef = collection(db, "ideas");
-const ideasQuery = query(ideasRef, orderBy("createdAt", "desc"));
+const ideasQuery = query(ideasRef, orderBy("voteTotal", "desc"));
+
+function getBrowserId() {
+  let browserId = localStorage.getItem(browserStorageKey);
+
+  if (!browserId) {
+    browserId = (window.crypto && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `browser-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    localStorage.setItem(browserStorageKey, browserId);
+  }
+
+  return browserId;
+}
+
+const browserId = getBrowserId();
 
 function showMessage(message, isError = false) {
   formMessage.textContent = message;
-  formMessage.style.color = isError ? "#c24f4f" : "#2d5a9d";
+  formMessage.style.color = isError ? "#ff8d8d" : "#9fe4ff";
 }
 
 async function addIdea(event) {
@@ -61,28 +78,68 @@ async function addIdea(event) {
       title,
       category,
       description,
-      votes: 1,
+      voteTotal: 0,
+      userVotes: {},
       createdAt: serverTimestamp(),
     });
 
     form.reset();
-    showMessage("Your idea was added!");
+    showMessage("Your idea was added successfully!");
   } catch (error) {
     console.error("Failed to add idea:", error);
     showMessage("Something went wrong. Try again in a moment.", true);
   }
 }
 
-async function voteOnIdea(id, change) {
+function getVoteTotal(idea) {
+  return Number(idea.voteTotal ?? idea.votes ?? 0);
+}
+
+function getUserVote(idea) {
+  const userVotes = idea.userVotes || {};
+  return Number(userVotes[browserId] || 0);
+}
+
+async function voteOnIdea(id, nextVote) {
   const ideaRef = doc(db, "ideas", id);
 
   try {
+    const snapshot = await getDoc(ideaRef);
+
+    if (!snapshot.exists()) {
+      showMessage("That idea is no longer available.", true);
+      return;
+    }
+
+    const idea = snapshot.data();
+    const userVotes = idea.userVotes || {};
+    const currentVote = Number(userVotes[browserId] || 0);
+
+    if (currentVote === nextVote) {
+      showMessage("You have already voted this way for this idea.", false);
+      return;
+    }
+
+    const delta = nextVote - currentVote;
+    const updatedVotes = {
+      ...userVotes,
+      [browserId]: nextVote,
+    };
+
     await updateDoc(ideaRef, {
-      votes: increment(change),
+      voteTotal: increment(delta),
+      userVotes: updatedVotes,
     });
+
+    showMessage(
+      nextVote === 1
+        ? "Your vote was updated to support this idea."
+        : "Your vote was updated to oppose this idea.",
+      false
+    );
   } catch (error) {
     console.error("Failed to vote:", error);
-    showMessage("The vote did not go through.", true);
+    showMessage("The vote did not go through. Please try again.", true);
   }
 }
 
@@ -122,7 +179,11 @@ function renderIdeas(ideas) {
 
   ideasContainer.innerHTML = ideas
     .map((idea) => {
-      const votes = Number(idea.votes || 0);
+      const votes = getVoteTotal(idea);
+      const userVote = getUserVote(idea);
+      const hasVoted = userVote !== 0;
+      const isUpSelected = userVote === 1;
+      const isDownSelected = userVote === -1;
       const safeTitle = escapeHtml(idea.title);
       const safeCategory = escapeHtml(idea.category);
       const safeDescription = escapeHtml(idea.description);
@@ -137,12 +198,17 @@ function renderIdeas(ideas) {
           <p class="idea-body">${safeDescription}</p>
 
           <div class="idea-meta">
-            <span>Posted ${formatDate(idea.createdAt)}</span>
+            <div class="idea-meta-left">
+              <span>Posted ${formatDate(idea.createdAt)}</span>
+              <span class="vote-status ${hasVoted ? "active" : ""}">
+                ${hasVoted ? (userVote === 1 ? "You voted for this" : "You voted against this") : "Vote once per idea"}
+              </span>
+            </div>
 
             <div class="vote-box">
               <button
                 type="button"
-                class="vote-btn up"
+                class="vote-btn up ${isUpSelected ? "selected" : ""}"
                 data-id="${idea.id}"
                 data-vote="1"
                 aria-label="Vote up for ${safeTitle}"
@@ -154,7 +220,7 @@ function renderIdeas(ideas) {
 
               <button
                 type="button"
-                class="vote-btn down"
+                class="vote-btn down ${isDownSelected ? "selected" : ""}"
                 data-id="${idea.id}"
                 data-vote="-1"
                 aria-label="Vote down for ${safeTitle}"
@@ -179,13 +245,13 @@ document.addEventListener("click", async (event) => {
   }
 
   const id = voteButton.dataset.id;
-  const change = Number(voteButton.dataset.vote);
+  const nextVote = Number(voteButton.dataset.vote);
 
-  if (!id || Number.isNaN(change)) {
+  if (!id || Number.isNaN(nextVote)) {
     return;
   }
 
-  await voteOnIdea(id, change);
+  await voteOnIdea(id, nextVote);
 });
 
 onSnapshot(
